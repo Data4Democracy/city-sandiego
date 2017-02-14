@@ -1,0 +1,45 @@
+---
+title: 'Traffic Data Starter Pack'
+date: "2-13-17"
+output: html_document
+---
+If you haven't already, please review our [San Diego partnership document](https://github.com/Data4Democracy/city-sandiego/blob/master/san-diego-partnership.md) to learn more about our goals.
+
+The purpose of this R notebook is to give new contributors a jump start on their analysis. Included in this notebook are a script that loads a traffic volume dataset from [Open San Diego](http://data.sandiego.gov/dataset/traffic-volumes) and an example data summary. More traffic related data can be found [at Open San Diego](http://data.sandiego.gov/search/field_topic/transportation-611/type/dataset?sort_by=changed).
+
+Contributors can copy and rename this file in their fork and start coding!
+
+
+## About the Dataset
+
+The average daily traffic counts dataset provides counts of vehicles on San Diego streets from 2002 to 2016. The counts are split up by the direction the vehicle was heading during the time of the count. A description of the variables can be found in the `dict` dataframe, which is also loaded below.
+
+
+## Storing Cleaned Datasets
+
+If your contribution results in a new dataset that you'd like to share, please contact Maksim Pecherskiy or Eric Bickel in the `#city-sandiego` Slack channel to get help moving the dataset to our [data.world page](https://data.world/data4democracy/sandiego-partnership).
+
+```{r load packages}
+library(tidyverse, quietly = T)
+```
+
+```{r load data}
+# Machine count index 
+aadt <- read_csv("https://datasd-prod.s3.amazonaws.com/traffic_counts/traffic_counts_datasd.csv")
+
+# Traffic counts dictionary
+dict <- read_csv("http://data.sandiego.gov/sites/default/files/traffic_counts_dictionary_datasd_0.csv")
+```
+
+Example Summary: What is the mean number of vehicles per day on each `limit` and in a particular direction? 
+
+```{r}
+st_means <- aadt %>%
+  group_by(limits) %>%
+  summarise(
+    north = mean(northbound_count, na.rm = T), 
+    south = mean(southbound_count, na.rm = T), 
+    west  = mean(westbound_count, na.rm = T), 
+    east  = mean(eastbound_count, na.rm = T)
+    )
+```
