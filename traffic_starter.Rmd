@@ -19,6 +19,11 @@ The average daily traffic counts dataset provides counts of vehicles on San Dieg
 
 If your contribution results in a new dataset that you'd like to share, please contact Maksim Pecherskiy or Eric Bickel in the `#city-sandiego` Slack channel to get help moving the dataset to our [data.world page](https://data.world/data4democracy/sandiego-partnership).
 
+
+## Getting Started With San Diego Traffic Volume 
+
+The traffic volume data is stored in `aadt`. The dictionary is stored in `dict`. The mean daily counts for each street and each direction is stored in `st_means`.
+
 ```{r load packages}
 library(tidyverse, quietly = T)
 ```
@@ -31,7 +36,8 @@ aadt <- read_csv("https://datasd-prod.s3.amazonaws.com/traffic_counts/traffic_co
 dict <- read_csv("http://data.sandiego.gov/sites/default/files/traffic_counts_dictionary_datasd_0.csv")
 ```
 
-Example Summary: What is the mean number of vehicles per day on each `limit` and in a particular direction? 
+
+Example Summary: What is the mean number of vehicles per day on each `limit` and in each direction? 
 
 ```{r}
 st_means <- aadt %>%
