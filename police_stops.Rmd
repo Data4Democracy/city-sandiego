@@ -1,0 +1,30 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+require(tidyverse)
+```
+
+```{r}
+race <- read_csv("p_stop_data/vehicle_stops_race_codes.csv")
+```
+
+```{r}
+stops <- read_csv("p_stop_data/vehicle_stops_2016_datasd.csv")
+```
+
+```{r}
+details <- read_csv("/Users/ryanestrellado/Documents/github/city-sandiego/p_stop_data/vehicle_stops_search_details_2016_datasd.csv")
+```
+
+```{r}
+dict <- read_csv("p_stop_data/vehicle_stops_dictionary.csv")
+```
+
+```{r}
+crace <- count(stops, subject_race) 
+
+crace <- left_join(crace, race, by = c("subject_race" = "Race Code"))
+```
