@@ -5,36 +5,53 @@ output:
   html_notebook: default
 ---
 
-```{r load packages}
+The purpose of this R Notebook is to clean and explore the 2016 police vehicle stop data that can be found at [Open San Diego's website](https://data.sandiego.gov/datasets/police-vehicle-stops/). 
+
+```{r load packages, message = F}
 library(tidyverse, verbose = T)
 library(knitr, verbose = T)
 library(stringr, verbose = T)
 ```
 
+```{r set options, message = F, echo = F}
+opts_chunk$set(message = F)
+```
+
+## About the Data 
+
+There are four datasets that we'll be reading in, but two are for reference. The `race` dataframe describes the race codes used. 
+
 ```{r read race table}
 race <- read_csv("p_stop_data/vehicle_stops_race_codes.csv")
 ```
 
+The `dict` dataframe is a description of all the variables in the main police vehicle stop dataset. 
+
 ```{r read dictionary}
 dict <- read_csv("p_stop_data/vehicle_stops_dictionary.csv")
 ```
+ 
+This is the main vehicle stops dataset, which will require some cleaning. 
 
 ```{r read stops}
 stops <- read_csv("p_stop_data/vehicle_stops_2016_datasd.csv", 
                   col_types = cols(
                     stop_id = col_character(), 
                     subject_age = col_character()), 
-                  na = "NA")
+                  na = "NA", 
+                  progress = F)
 ```
 
-Let's clean up some of the string values: 
+Some of the string values in the `searched` and `arrested` fields need to be cleaned up so that the only values used are `N`, `Y`, or blank.
 
 ```{r}
-stops$searched <- str_replace_all(stops$searched, c("n" = "N", "\\\\" = "NA"))
-stops$arrested <- str_replace_all(stops$arrested, c("n" = "N", "\\\\" = "NA"))
+stops$searched <- str_replace_all(stops$searched, c("n" = "N", "\\\\" = "", "NA" = ""))
+stops$arrested <- str_replace_all(stops$arrested, c("n" = "N", "y" = "Y"))
+
+unique(stops$searched); unique(stops$arrested)
 ```
 
-Let's clean up the age variable by removing the "no age" values and converting it to a numeric. 
+Let's clean up the age variable by removing the "no age" values and converting it to a numeric class. 
 
 ```{r}
 stops <- stops %>% 
@@ -51,9 +68,13 @@ stops <- stops %>%
                               subject_sex))
 ```
 
+Let's examine the structure of the `stops` data. 
+
 ```{r}
 str(stops)
 ```
+
+There's also a dataframe that describes the actions taken during searches for each `stop_id`. 
 
 ```{r read details}
 details <- read_csv("p_stop_data/vehicle_stops_search_details_2016_datasd.csv",
@@ -65,78 +86,20 @@ details <- read_csv("p_stop_data/vehicle_stops_search_details_2016_datasd.csv",
                     ))
 ```
 
-```{r}
+```{r echo = F, result = "hide"}
 str(details)
 ```
 
+Doing the `left_join` with `stops` and `details` results in multiple `stop_id` matches, probably because there are multiple observations in `details` for each of the `stop_id`. The result is that new rows are created in the resulting `comb` dataset.
+
 ```{r merge}
 comb <- left_join(stops, details, by = "stop_id")
+dim(stops); dim(details); dim(comb)
 ```
-
-How many times are `stop_id` values duplicated in the `comb` dataframe? 
-
-```{r}
-comb_ids <- comb %>% 
-  count(stop_id) %>% 
-  arrange(desc(n))
-```
-
-How many times are `stop_id` values duplicated in the `stops` dataframe? 
-
-```{r}
-stops_ids <- stops %>% 
-  count(stop_id) %>% 
-  arrange(desc(n))
-```
-
-It appears that doing the `left_join` with `stops` and `details` results in more duplicates of `stop_ids`, probably because there are multiple observations in `details` for each of the `stop_ids`. The result is that new rows are created in the resulting `comb` dataset.
 
 Let's focus first on analyzing the `stops` dataset without joining to the `details` dataset so that we don't misrepresent the number of observations originally collected in the `stops` dataset. 
 
-## Data Quality: NAs
-
-The research paper notes that in 201  4 there were 144164 traffic stops and in 2015 there were 115405 traffic stops. In 2016 there were `r nrow(stops)` stops. Here are the percentage of each variable that were NA: 
-
-```{r}
-missing <- tibble(
-  stop_description = c(
-    "driver_race", 
-    "driver_age", 
-    "driver_gender", 
-    "residency_status", 
-    "service_area", 
-    "stop_cause", 
-    "stop_time", 
-    "stop_date", 
-    "arrested", 
-    "searched", 
-    "obtained_consent", 
-    "contraband_found", 
-    "property_seized"
-  ), 
-  perc_missing = c(
-    mean(is.na(stops$subject_race)), 
-    mean(is.na(stops$subject_age)), 
-    mean(is.na(stops$subject_sex)), 
-    mean(is.na(stops$sd_resident)), 
-    mean(is.na(stops$service_area)), 
-    mean(is.na(stops$stop_cause)), 
-    mean(is.na(stops$stop_time)), 
-    mean(is.na(stops$stop_date)), 
-    mean(is.na(stops$arrested)), 
-    mean(is.na(stops$searched)), 
-    mean(is.na(stops$obtained_consent)), 
-    mean(is.na(stops$contraband_found)), 
-    mean(is.na(stops$property_seized))
-  )
-) 
-
-missing <- missing %>% 
-  mutate(perc_missing = round(perc_missing * 100, 2)) %>% 
-  arrange(desc(perc_missing))
-
-kable(missing)
-```
+## Exploratory Analysis
 
 ```{r}
 ggplot(data = stops) + 
