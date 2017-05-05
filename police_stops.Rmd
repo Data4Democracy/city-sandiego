@@ -103,23 +103,52 @@ Let's focus first on analyzing the `stops` dataset without joining to the `detai
 
 ```{r}
 ggplot(data = stops) + 
-  geom_bar(aes(x = subject_sex))
+  geom_bar(aes(x = subject_sex)) + 
+  labs(title = "2016 San Diego Police Vehicle Stops by Gender", 
+       subtitle = "data: Open San Diego", 
+       x = "Gender", 
+       y = "")
 ```
 
 ```{r}
 ggplot(data = stops) + 
-  geom_boxplot(aes(y = subject_age, x = subject_sex))
+  geom_boxplot(aes(y = subject_age, x = subject_sex)) + 
+  labs(title = "2016 San Diego Police Vehicle Stops Median Age", 
+       subtitle = "data: Open San Diego", 
+       x = "Gender", 
+       y = "Age")
 ```
 
 ```{r}
-qplot(data = stops, searched)
+ggplot(data = stops) + 
+  geom_bar(aes(x = searched)) +
+  labs(title = "2016 San Diego Police Vehicle Stops by Search Status", 
+       subtitle = "data: Open San Diego", 
+       x = "Was the subject searched?", 
+       y = "")
 ```
 
 ```{r}
-qplot(data = stops, stop_cause) + 
-  coord_flip()
+ggplot(data = stops, aes(
+  x = reorder(stop_cause, stop_cause, function(x) {length(x)})
+  )) + 
+  geom_bar() +
+  coord_flip() +
+  labs(title = "2016 San Diego Police Vehicle Stops Count of Stop Cause",
+       subtitle = "data: Open San Diego", 
+       x = "", 
+       y = "")
 ```
 
 ```{r}
-qplot(data = stops, service_area)
+ggplot(data = stops, aes(
+  x = reorder(service_area, service_area, function(x) {length(x)})
+)) + 
+  geom_bar() +
+  coord_flip() + 
+  labs(title = "2016 San Diego Police Vehicle Stops by Service Area", 
+       subtitle = "data: Open San Diego", 
+       x = "Service Area Code", 
+       y = ""
+       )
 ```
