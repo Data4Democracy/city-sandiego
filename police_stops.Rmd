@@ -42,31 +42,31 @@ stops <- read_csv("p_stop_data/vehicle_stops_2016_datasd.csv",
                   progress = F)
 ```
 
-Some of the string values in the `searched` and `arrested` fields need to be cleaned up so that the only values used are `N`, `Y`, or blank.
+A lot of the character values will need to be cleaned up, including consolidating values that were spelled differently or capitalized. 
 
 ```{r}
+# Yes and no's
 stops$searched <- str_replace_all(stops$searched, c("n" = "N", "\\\\" = "", "NA" = ""))
 stops$arrested <- str_replace_all(stops$arrested, c("n" = "N", "y" = "Y"))
 
-unique(stops$searched); unique(stops$arrested)
-```
-
-Let's clean up the age variable by removing the "no age" values and converting it to a numeric class. 
-
-```{r}
+# Remove "no age"
 stops <- stops %>% 
   mutate(subject_age = ifelse(subject_age == "No Age", "", subject_age), 
          subject_age = as.numeric(subject_age))
-```
 
-Let's clean up the gender variable by converting blank fields and "X" values to NAs. 
-
-```{r}
+# Remove X's in the gender field
 stops <- stops %>% 
   mutate(subject_sex = ifelse(subject_sex == "" | subject_sex == "X", 
                               NA, 
                               subject_sex))
+
+# Consolidate values stop_cause 
+stops$stop_cause <- str_replace_all(stops$stop_cause, 
+                        c("Bicycle Bicycle" = "Bicycle", 
+                          "BICYCLE" = "bicycle", 
+                          "Muni, County, H&S Code" = "MUNI, County, H&S Code")) 
 ```
+
 
 Let's examine the structure of the `stops` data. 
 
@@ -128,11 +128,13 @@ ggplot(data = stops) +
        y = "")
 ```
 
+When comparing the causes for the stops, we only considered the causes that had more than 10 instances. 
+
 ```{r}
-ggplot(data = stops, aes(
-  x = reorder(stop_cause, stop_cause, function(x) {length(x)})
-  )) + 
-  geom_bar() +
+count(stops, stop_cause) %>% 
+  filter(n > 10) %>% 
+  ggplot() + 
+  geom_bar(aes(x = reorder(stop_cause, n), y = n), stat = "identity") +
   coord_flip() +
   labs(title = "2016 San Diego Police Vehicle Stops Count of Stop Cause",
        subtitle = "data: Open San Diego", 
