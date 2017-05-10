@@ -8,9 +8,9 @@ output:
 The purpose of this R Notebook is to clean and explore the 2016 police vehicle stop data that can be found at [Open San Diego's website](https://data.sandiego.gov/datasets/police-vehicle-stops/). 
 
 ```{r load packages, message = F}
-library(tidyverse, verbose = T)
-library(knitr, verbose = T)
-library(stringr, verbose = T)
+library(tidyverse, verbose = F)
+library(knitr, verbose = F)
+library(stringr, verbose = F)
 ```
 
 ```{r set options, message = F, echo = F}
@@ -33,7 +33,7 @@ dict <- read_csv("http://seshat.datasd.org/pd/vehicle_stops_dictionary.csv")
  
 This is the main vehicle stops dataset from 2016, which will require some cleaning. 
 
-```{r read stops}
+```{r read stops, warning = F}
 s_url <- "http://seshat.datasd.org/pd/vehicle_stops_2016_datasd.csv"
 
 stops <- read_csv(s_url, col_types = cols(stop_id = col_character(),
