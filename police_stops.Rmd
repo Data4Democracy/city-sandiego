@@ -1,0 +1,160 @@
+---
+title: "Exploring 2016 San Diego Police Stop Data"
+output:
+  html_document: default
+  html_notebook: default
+---
+
+The purpose of this R Notebook is to clean and explore the 2016 police vehicle stop data that can be found at [Open San Diego's website](https://data.sandiego.gov/datasets/police-vehicle-stops/). 
+
+```{r load packages, message = F}
+library(tidyverse, verbose = T)
+library(knitr, verbose = T)
+library(stringr, verbose = T)
+```
+
+```{r set options, message = F, echo = F}
+opts_chunk$set(message = F)
+```
+
+## About the Data 
+
+There are four datasets that we'll be reading in, but two are for reference. The `race` dataframe describes the race codes used. 
+
+```{r read race table}
+race <- read_csv("http://seshat.datasd.org/pd/vehicle_stops_race_codes.csv")
+```
+
+The `dict` dataframe is a description of all the variables in the main police vehicle stop dataset. 
+
+```{r read dictionary}
+dict <- read_csv("http://seshat.datasd.org/pd/vehicle_stops_dictionary.csv")
+```
+ 
+This is the main vehicle stops dataset from 2016, which will require some cleaning. 
+
+```{r read stops}
+s_url <- "http://seshat.datasd.org/pd/vehicle_stops_2016_datasd.csv"
+
+stops <- read_csv(s_url, col_types = cols(stop_id = col_character(),
+                                          subject_age = col_character()), 
+                  na = "NA", progress = F)
+```
+
+A lot of the character values will need to be cleaned up, including consolidating values that were spelled differently or capitalized. 
+
+```{r}
+# Yes and no's
+stops$searched <- str_replace_all(stops$searched, 
+                                  c("n" = "N", "\\\\" = "", "NA" = ""))
+stops$arrested <- str_replace_all(stops$arrested, 
+                                  c("n" = "N", "y" = "Y"))
+
+# Remove "no age"
+stops <- stops %>% 
+  mutate(subject_age = ifelse(subject_age == "No Age", "", subject_age), 
+         subject_age = as.numeric(subject_age))
+
+# Remove X's in the gender field
+stops <- stops %>% 
+  mutate(subject_sex = ifelse(subject_sex == "" | subject_sex == "X", 
+                              NA, 
+                              subject_sex))
+
+# Consolidate values stop_cause 
+stops$stop_cause <- str_replace_all(stops$stop_cause, 
+                        c("Bicycle Bicycle" = "Bicycle", 
+                          "BICYCLE" = "bicycle", 
+                          "Muni, County, H&S Code" = "MUNI, County, H&S Code"))
+```
+
+Let's examine the structure of the `stops` data. 
+
+```{r}
+str(stops)
+```
+
+There's also a dataframe that describes the actions taken during searches for each `stop_id`. 
+
+```{r read details}
+d_url <- "http://seshat.datasd.org/pd/vehicle_stops_search_details_2016_datasd.csv"
+
+details <- read_csv(d_url, 
+                    col_types = cols(stop_id = col_character(), 
+                                     search_details_id = col_character(),
+                                     search_details_type = col_character(),
+                                     search_details_description = col_character()))
+```
+
+```{r echo = F, result = "hide"}
+str(details)
+```
+
+Doing the `left_join` with `stops` and `details` results in multiple `stop_id` matches, probably because there are multiple observations in `details` for each of the `stop_id`. The result is that new rows are created in the resulting `comb` dataset.
+
+```{r merge}
+comb <- left_join(stops, details, by = "stop_id")
+dim(stops); dim(details); dim(comb)
+```
+
+Let's focus first on analyzing the `stops` dataset without joining to the `details` dataset so that we don't misrepresent the number of observations originally collected in the `stops` dataset. 
+
+## Exploratory Analysis
+
+The following are exploratory plots to help generate hypotheses and ideas for feature selection. 
+
+```{r}
+ggplot(data = stops, aes(x = subject_sex)) + 
+  geom_bar(fill = "cyan4") + 
+  labs(title = "2016 San Diego Police Vehicle Stops by Gender", 
+       subtitle = "data: Open San Diego", 
+       x = "Gender", 
+       y = "")
+```
+
+This boxplot drops rows because of NA values in the `subject_age` column. 
+
+```{r}
+ggplot(data = stops, aes(y = subject_age, x = subject_sex)) + 
+  geom_boxplot(fill = "cyan4") + 
+  scale_x_discrete("Gender", labels = c("M" = "Male", "F" = "Female", "NA")) +
+  scale_y_continuous("Age") +
+  labs(title = "2016 San Diego Police Vehicle Stops Median Age", 
+       subtitle = "data: Open San Diego")
+```
+
+```{r}
+ggplot(data = stops, aes(x = searched)) + 
+  geom_bar(fill = "cyan4") + 
+  scale_x_discrete("searched", labels = c("N" = "Not Searched", 
+                                          "Y" = "Searched", "No data")) +
+  labs(title = "2016 San Diego Police Vehicle Stops by Search Status", 
+       subtitle = "data: Open San Diego", 
+       x = "Was the subject searched?", 
+       y = "")
+```
+
+When comparing the causes for the stops, we only considered the causes that had more than 10 instances. 
+
+```{r}
+count(stops, stop_cause) %>% 
+  filter(n > 10) %>% 
+  ggplot(aes(x = reorder(stop_cause, n), y = n)) + 
+  geom_bar(stat = "identity", fill = "cyan4") +
+  coord_flip() +
+  labs(title = "2016 San Diego Police Vehicle Stops Count of Stop Cause",
+       subtitle = "data: Open San Diego", 
+       x = "", 
+       y = "")
+```
+
+```{r}
+ggplot(stops, aes(x = reorder(service_area, service_area, 
+                              function(x) {length(x)}))) + 
+  geom_bar(fill = "cyan4") +
+  coord_flip() + 
+  labs(title = "2016 San Diego Police Vehicle Stops by Service Area", 
+       subtitle = "data: Open San Diego", 
+       x = "Service Area Code", 
+       y = "")
+```
